@@ -3,7 +3,7 @@ import logging
 import re
 import dbutil
 import util
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import telegram
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -133,25 +133,60 @@ def help(update, context):
         util.send(update, context, "This command does not exist")
 
 
+def get_events(update, context, sd, ed, st="00:00", et="23:59"):
+    """Get and send events for the given date and time."""
+    r = util.reverse_date
+    events = dbutil.get_events(r(sd), st, r(ed), et)
+    if not events:
+        util.send(update, context, "No events available")
+    for event in events:
+        util.send(update, context, event.as_message())
+
+
 def get_today(update, context):
     """Get events for today."""
     today = datetime.utcnow()
-    date = today.strftime("%Y.%m.%d")
-    events = dbutil.get_events(
-        date,
-        "00:00",
-        date,
-        "23:59"
-    )
-    for event in events:
-        util.send(update, context, event.as_message())
+    date = today.strftime("%d.%m.%Y")
+    get_events(update, context, date, date)
+
+
+def get_tomorrow(update, context):
+    """Get events for tomorrow."""
+    tomorrow = datetime.utcnow() + timedelta(days=1)
+    date = tomorrow.strftime("%d.%m.%Y")
+    get_events(update, context, date, date)
+
+
+def get_events_for(update, context):
+    """Get events for a specific date."""
+    text = update.message.text
+    match = re.search(util.EVENT_FIELDS['sd']['regexp'], text)
+    if match:
+        content = util.build_date(match.groups())
+        if content:
+            get_events(update, context, content, content)
+        else:
+            util.send(update, context, "Invalid value. Try again")
+    else:
+        util.send(update, context, "Something very bad happened")
 
 
 def add_handlers(dispatcher):
     """Add all handlers in the same place."""
     dispatcher.add_handler(CommandHandler('start', start))
     dispatcher.add_handler(CommandHandler('help', help))
-    dispatcher.add_handler(CommandHandler('today', get_today))
+    dispatcher.add_handler(MessageHandler(
+        Filters.regex(re.compile(r'^today$', re.IGNORECASE)),
+        get_today
+    ))
+    dispatcher.add_handler(MessageHandler(
+        Filters.regex(re.compile(r'^tomorrow$', re.IGNORECASE)),
+        get_tomorrow
+    ))
+    dispatcher.add_handler(MessageHandler(
+        Filters.regex(util.EVENT_FIELDS['sd']['regexp']),
+        get_events_for
+    ))
     dispatcher.add_handler(ConversationHandler(
         [CommandHandler('single', conversation_single_start)],
         {
