@@ -1,0 +1,27 @@
+help [<command>]
+Display full manual, or a command's options.
+
+event [<date>] [<start_time>] [<end_time>] <event name>
+Create a new event.
+date: the date of the event. Options are...
+* Today
+* Monday, Mo: next Monday.
+* Monday2, Mo2: Monday two weeks from now.
+* 17: next 17th.
+* 17/2: next 17/02.
+* 17/2/20: exact date.
+start_time: starting time for the event.
+end_time: ending time for the event.
+* Empty: all day.
+* 15: at 15:00.
+* 15:30, 1530: at 15:30.
+
+info <date> [<start_time>] [<end_time>]
+Show info about events in the given time range.
+For event options, see *info*.
+
+today
+Show info about today's events.
+
+tomorrow
+Show info about tomorrow's events.
